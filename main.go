@@ -2,48 +2,105 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
-)
-
-const (
-	PlaylistURL = "http://www.radioreference.com/scripts/playlists/1/13315/0-5442179616.m3u"
-	FilePath    = "./recording.mp3"
+	"time"
 )
 
 func main() {
+	// Be polite
+	log.Println("-----| STREAM RECORDER |-----")
+
+	// Load settings
+	type ConfigStruct struct {
+		Playlist         string `json:"Playlist"`
+		OutputFolderPath string `json:"OutputFolderPath"`
+	}
+
+	var config ConfigStruct
+
+	configFile, _ := os.Open("./config.json")
+	configDecoder := json.NewDecoder(configFile)
+	configDecoder.Decode(&config)
+	configFile.Close()
+
+	log.Println("Playlist URL is:", config.Playlist)
+
 	// Fetch the streaming URL from the playlist
-	streamUrl := getStreamUrlFromPlaylist(PlaylistURL)
+	streamUrl := getStreamUrlFromPlaylist(config.Playlist)
 
-	log.Println("Streaming URL:", streamUrl)
+	log.Println("Streaming URL found:", streamUrl)
 
-	// Create the output file
-	recording, _ := os.Create(FilePath)
-	defer recording.Close()
+	// Setting timer
+	t0 := time.Now()
+	fmt.Println(t0)
 
-	log.Println("Output file succesfully created.")
+	// Create the output folder
+	os.Mkdir(config.OutputFolderPath, 0777) // TO DO: Fix permission bits.
 
-	// Read byte by byte and write the output file
+	log.Println("Output folder succesfully created.")
+
+	outputFile := createNewOutputfile(t0, config.OutputFolderPath)
+
+	// Set up the buffers and streamings
 	stream, _ := http.Get(streamUrl)
-	reader := bufio.NewReader(stream.Body)
-	writer := bufio.NewWriter(recording)
+	defer stream.Body.Close()
 
-	saveStreamingBytes(reader, writer)
+	reader := bufio.NewReader(stream.Body)
+	writer := bufio.NewWriter(outputFile)
+
+	for {
+		// Recordings are done in an hourly basis.
+		if time.Since(t0) < time.Second*10 {
+			saveStreamingBytes(reader, writer)
+		} else {
+			// When an hour has passed reset timer and writer.
+			t0 = time.Now()
+			writer = bufio.NewWriter(createNewOutputfile(t0, config.OutputFolderPath))
+
+			// Also delete recordings with more than 24 hours.
+			eraseOldOutputs(config.OutputFolderPath)
+		}
+	}
 
 }
 
-func saveStreamingBytes(src *bufio.Reader, dst *bufio.Writer) {
-	for {
-		b, err := src.ReadByte()
+func eraseOldOutputs(folder string) {
+	outputFolder, _ := os.Open(folder)
+	defer outputFolder.Close()
 
-		if err == nil {
-			dst.WriteByte(b)
-			dst.Flush()
-		} else {
-			log.Println(err.Error())
+	files, _ := outputFolder.Readdir(0)
+
+	for _, el := range files {
+		if time.Since(el.ModTime()) > time.Hour*6 {
+			os.Remove(folder + "/" + el.Name())
 		}
+	}
+}
+
+func createNewOutputfile(t time.Time, folder string) *os.File {
+	// Layout string: Mon Jan 2 15:04:05 -0700 MST 2006
+	fileName := folder + "/" + t.Format("20060102_150405") + ".mp3"
+	outputFile, _ := os.Create(fileName)
+
+	log.Println("File", fileName, "succesfully created.")
+
+	return outputFile
+}
+
+func saveStreamingBytes(src *bufio.Reader, dst *bufio.Writer) {
+	// Byte by byte streaming
+	b, err := src.ReadByte()
+
+	if err == nil {
+		dst.WriteByte(b)
+		dst.Flush()
+	} else {
+		log.Println(err.Error())
 	}
 }
 

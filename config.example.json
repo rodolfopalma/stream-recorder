@@ -1,0 +1,4 @@
+{
+	"Playlist": "http://example.com/foobar.m3u",
+	"OutputFolderPath": "./recordings"
+}

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -37,7 +36,6 @@ func main() {
 
 	// Setting timer
 	t0 := time.Now()
-	fmt.Println(t0)
 
 	// Create the output folder
 	os.Mkdir(config.OutputFolderPath, 0777) // TO DO: Fix permission bits.

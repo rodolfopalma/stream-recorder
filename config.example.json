@@ -1,4 +1,6 @@
 {
-	"Playlist": "http://example.com/foobar.m3u",
-	"OutputFolderPath": "./recordings"
+	"Playlist": "http://example.com/foobar.m3u",	
+	"OutputFolderPath": "./recordings",				
+	"OutputIntervalMinutes": 60,							
+	"OutputLengthHours": 12								
 }

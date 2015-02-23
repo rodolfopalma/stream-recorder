@@ -16,16 +16,24 @@ func main() {
 
 	// Load settings
 	type ConfigStruct struct {
-		Playlist         string `json:"Playlist"`
-		OutputFolderPath string `json:"OutputFolderPath"`
+		Playlist              string        `json:"Playlist"`
+		OutputFolderPath      string        `json:"OutputFolderPath"`
+		OutputIntervalMinutes time.Duration `json:"OutputIntervalMinutes"`
+		OutputLengthHours     time.Duration `json:"OutputLengthHours"`
 	}
 
 	var config ConfigStruct
 
 	configFile, _ := os.Open("./config.json")
 	configDecoder := json.NewDecoder(configFile)
-	configDecoder.Decode(&config)
+
+	if err := configDecoder.Decode(&config); err != nil {
+		log.Println(err)
+	}
+
 	configFile.Close()
+
+	log.Println(config)
 
 	log.Println("Playlist URL is:", config.Playlist)
 
@@ -52,8 +60,8 @@ func main() {
 	writer := bufio.NewWriter(outputFile)
 
 	for {
-		// Recordings are done in an hourly basis.
-		if time.Since(t0) < time.Second*10 {
+		// Recordings are done in an regular basis
+		if time.Since(t0) < time.Minute*config.OutputIntervalMinutes {
 			saveStreamingBytes(reader, writer)
 		} else {
 			// When an hour has passed reset timer and writer.
@@ -61,20 +69,20 @@ func main() {
 			writer = bufio.NewWriter(createNewOutputfile(t0, config.OutputFolderPath))
 
 			// Also delete recordings with more than 24 hours.
-			eraseOldOutputs(config.OutputFolderPath)
+			eraseOldOutputs(config.OutputFolderPath, config.OutputLengthHours)
 		}
 	}
 
 }
 
-func eraseOldOutputs(folder string) {
+func eraseOldOutputs(folder string, length time.Duration) {
 	outputFolder, _ := os.Open(folder)
 	defer outputFolder.Close()
 
 	files, _ := outputFolder.Readdir(0)
 
 	for _, el := range files {
-		if time.Since(el.ModTime()) > time.Hour*6 {
+		if time.Since(el.ModTime()) > time.Hour*length {
 			os.Remove(folder + "/" + el.Name())
 		}
 	}
@@ -103,7 +111,12 @@ func saveStreamingBytes(src *bufio.Reader, dst *bufio.Writer) {
 }
 
 func getStreamUrlFromPlaylist(url string) string {
-	resp, _ := http.Get(url)
+	resp, err := http.Get(url)
+
+	if err != nil {
+		log.Println(err)
+	}
+
 	defer resp.Body.Close()
 
 	scanner := bufio.NewScanner(resp.Body)

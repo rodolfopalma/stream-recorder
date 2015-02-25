@@ -90,6 +90,9 @@ func eraseOldOutputs(folder string, length time.Duration) {
 
 func createNewOutputfile(t time.Time, folder string) *os.File {
 	// Layout string: Mon Jan 2 15:04:05 -0700 MST 2006
+	location, _ := time.LoadLocation("Chile/Continental")
+	t = t.In(location)
+
 	fileName := folder + "/" + t.Format("20060102_150405") + ".mp3"
 	outputFile, _ := os.Create(fileName)
 

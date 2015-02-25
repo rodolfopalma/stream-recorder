@@ -7,5 +7,7 @@ Just run `go get github.com/rpalmaotero/stream-recorder`, rename `config.example
 
 ## TO DO
 * ~~Split recording files by length of the recording.~~
-* Allow custom length of recording through config file.
-* Alloe custom maximum storage time trough config file.
+* ~~Allow custom length of recording through config file.~~
+* ~~Allow custom maximum storage time trough config file.~~
+* ~~Allow custom timezone~~
+* Think about what else to do

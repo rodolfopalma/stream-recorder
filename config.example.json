@@ -2,5 +2,6 @@
 	"Playlist": "http://example.com/foobar.m3u",	
 	"OutputFolderPath": "./recordings",				
 	"OutputIntervalMinutes": 60,							
-	"OutputLengthHours": 12								
+	"OutputLengthHours": 12,
+	"Timezone": "Chile/Continental"								
 }

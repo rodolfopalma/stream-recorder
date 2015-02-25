@@ -20,6 +20,7 @@ func main() {
 		OutputFolderPath      string        `json:"OutputFolderPath"`
 		OutputIntervalMinutes time.Duration `json:"OutputIntervalMinutes"`
 		OutputLengthHours     time.Duration `json:"OutputLengthHours"`
+		Timezone              string        `json:"Timezone"`
 	}
 
 	var config ConfigStruct
@@ -32,8 +33,6 @@ func main() {
 	}
 
 	configFile.Close()
-
-	log.Println(config)
 
 	log.Println("Playlist URL is:", config.Playlist)
 
@@ -50,7 +49,7 @@ func main() {
 
 	log.Println("Output folder succesfully created.")
 
-	outputFile := createNewOutputfile(t0, config.OutputFolderPath)
+	outputFile := createNewOutputfile(t0, config.OutputFolderPath, config.Timezone)
 
 	// Set up the buffers and streamings
 	stream, _ := http.Get(streamUrl)
@@ -66,7 +65,7 @@ func main() {
 		} else {
 			// When an hour has passed reset timer and writer.
 			t0 = time.Now()
-			writer = bufio.NewWriter(createNewOutputfile(t0, config.OutputFolderPath))
+			writer = bufio.NewWriter(createNewOutputfile(t0, config.OutputFolderPath, config.Timezone))
 
 			// Also delete recordings with more than 24 hours.
 			eraseOldOutputs(config.OutputFolderPath, config.OutputLengthHours)
@@ -88,9 +87,9 @@ func eraseOldOutputs(folder string, length time.Duration) {
 	}
 }
 
-func createNewOutputfile(t time.Time, folder string) *os.File {
+func createNewOutputfile(t time.Time, folder string, tz string) *os.File {
 	// Layout string: Mon Jan 2 15:04:05 -0700 MST 2006
-	location, _ := time.LoadLocation("Chile/Continental")
+	location, _ := time.LoadLocation(tz)
 	t = t.In(location)
 
 	fileName := folder + "/" + t.Format("20060102_150405") + ".mp3"

@@ -10,4 +10,4 @@ Just run `go get github.com/rpalmaotero/stream-recorder`, rename `config.example
 * ~~Allow custom length of recording through config file.~~
 * ~~Allow custom maximum storage time trough config file.~~
 * ~~Allow custom timezone~~
-* Think about what else to do
+* Recover lost connections

@@ -45,7 +45,7 @@ func main() {
 	t0 := time.Now()
 
 	// Create the output folder
-	os.Mkdir(config.OutputFolderPath, 0777) // TO DO: Fix permission bits.
+	os.Mkdir(config.OutputFolderPath, 0777) // TO DO: Fix permissions.
 
 	log.Println("Output folder succesfully created.")
 
@@ -53,7 +53,6 @@ func main() {
 
 	// Set up the buffers and streamings
 	stream, _ := http.Get(streamUrl)
-	defer stream.Body.Close()
 
 	reader := bufio.NewReader(stream.Body)
 	writer := bufio.NewWriter(outputFile)
@@ -63,6 +62,11 @@ func main() {
 		if time.Since(t0) < time.Minute*config.OutputIntervalMinutes {
 			saveStreamingBytes(reader, writer)
 		} else {
+			// Reset the connection to prevent memory leaks.
+			stream.Body.Close()
+			stream, _ = http.Get(streamUrl)
+			reader = bufio.NewReader(stream.Body)
+
 			// When an hour has passed reset timer and writer.
 			t0 = time.Now()
 			writer = bufio.NewWriter(createNewOutputfile(t0, config.OutputFolderPath, config.Timezone))
